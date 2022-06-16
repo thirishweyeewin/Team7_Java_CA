@@ -3,6 +3,7 @@ package com.iss.sa54.team7.controller;
 import javax.servlet.http.HttpSession;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.scrypt.SCryptPasswordEncoder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.ModelAttribute;
@@ -25,6 +26,7 @@ public class sessionController {
 		
 		User user = new User();
 		model.addAttribute("user", user);
+		model.addAttribute("hasError", "false");
 		return "login";
 	}
 	
@@ -34,18 +36,25 @@ public class sessionController {
 	}
 	
 	@PostMapping("/authenticate")
-	public String authenticate(@ModelAttribute("user") User user, HttpSession session) {
+	public String authenticate(@ModelAttribute("user") User user, HttpSession session, Model model) {
 		
-		if (user.getPassword() == null || user.getUsername().isBlank() || user.getPassword().isBlank() || user.getUsername() == null)
+		if (user.getPassword() == null || 
+				user.getUsername().isBlank() || 
+				user.getPassword().isBlank() || 
+				user.getUsername() == null) {
+			model.addAttribute("isNull", "true");
 			return "forward:/home/viewLoginForm";
+		}
 
 		User userFromDb = uservice.findUserByUsername(user.getUsername());
 		String nextPage = "";
 		
-		if (userFromDb == null)
+		if (userFromDb == null) {
+			model.addAttribute("exist", "true");
 			return "forward:/home/viewLoginForm";
+		}
 		
-		if (userFromDb.getPassword().equals(user.getPassword())) {
+		if (authenticateUser(user, userFromDb)) {
 			RoleType role = userFromDb.getRole();
 			if (role == RoleType.ADMIN)
 				nextPage = "admMainPage";
@@ -56,8 +65,10 @@ public class sessionController {
 			
 			session.setAttribute("currentUser", user);
 		}
-		else
+		else {
+			model.addAttribute("wrong", "true");
 			nextPage = "forward:/home/viewLoginForm";
+		}
 		
 		return nextPage;
 	}
@@ -69,6 +80,10 @@ public class sessionController {
 		return "index";
 	}
 	
+	private boolean authenticateUser(User user, User userFromDb) {
+		SCryptPasswordEncoder encoder = new SCryptPasswordEncoder();
+		return encoder.matches(user.getPassword(), userFromDb.getPassword());
+	}
 	
 }
 

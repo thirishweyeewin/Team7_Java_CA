@@ -9,6 +9,11 @@
 	<header>LOG IN</header>
 	
 	<form th:action="@{/home/authenticate}" th:object="${user}" method="POST">
+		 <div>
+		 	<span style="color: red;" th:if="${isNull != null}">Please provide both username and password</span>
+		 	<span style="color: red;" th:if="${wrong != null}">Wrong password</span>
+		 	<span style="color: red;" th:if="${exist != null}">Username incorrect/not found</span>
+		 </div>
 		 <table>
 	       		<tr>
 	                <td>Username:</td>
